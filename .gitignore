@@ -1,0 +1,15 @@
+# 忽略 tb 文件夹中的 __pycache__
+tb/__pycache__/
+
+# 忽略 tb 文件夹中的 sim_build
+tb/sim_build/
+
+# 忽略 tb 文件夹中的特定文件
+tb/modelsim.ini
+tb/output.pcap
+tb/results.xml
+tb/transcript
+tb/vsim.wlf
+tb/my
+tb/test.v
+tb/test.py
