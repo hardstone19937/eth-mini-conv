@@ -10,6 +10,6 @@ tb/output.pcap
 tb/results.xml
 tb/transcript
 tb/vsim.wlf
-tb/my.py
+tb/my
 tb/test.v
 tb/test.py
