@@ -46,8 +46,8 @@ end
 
 //automation
 
-reg [DATA_WIDTH-1:0] param_matrix [0:8];
-reg [DATA_WIDTH-1:0] conv_matrix [0:8];
+reg signed [DATA_WIDTH-1:0] param_matrix [0:8];
+reg signed [DATA_WIDTH-1:0] conv_matrix [0:8];
 reg [2 :0] state, next_state;
 
 //state
@@ -133,7 +133,7 @@ assign d_check_8 = conv_matrix[8];
 
 
 
-reg [DATA_WIDTH-1:0] result;
+reg signed [DATA_WIDTH * 2 + 2 :0] result;
 
 always @(posedge clk) begin
     if (rst)
@@ -175,7 +175,11 @@ wire tvalid = (state == LOAD_DATA_COMPUTE && byte_counter == 'd1) || (state == D
 wire tlast = (state == DUMMY1);
 assign m_axis_tvalid = tvalid;
 assign m_axis_tlast = tlast;
-assign m_axis_tdata = result;
+
+assign m_axis_tdata = (result > 127) ? 127 : 
+                       (result < -128) ? -128 : 
+                       result[7:0];  // result 的低 8 位
+
 //////
 assign s_axis_tready = m_axis_tready;
 assign m_axis_tuser = 0;
