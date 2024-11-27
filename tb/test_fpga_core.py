@@ -75,14 +75,14 @@ async def run_test(dut):
     submatrices = []
 
     # 生成 3x3 的卷积核，值在 0 到 5 之间
-    conv_kernel = np.random.randint(0, 6, size=(3, 3), dtype=np.uint8)
+    conv_kernel = np.random.randint(-100, 100, size=(3, 3), dtype=np.int8)
     conv_kernel_r = conv_kernel
     submatrices.append(conv_kernel.tobytes())
     
     # 输出卷积核
     tb.log.info("Generated 3x3 Convolution Kernel:\n%s", np.array2string(conv_kernel, separator=', '))
     # 生成12*12的矩阵取值在[0,5]
-    matrix = np.random.randint(230, 231, size=(12, 12), dtype=np.uint8)
+    matrix = np.random.randint(-100, 100, size=(12, 12), dtype=np.int8)
     tb.log.info("Generated 12x12 matrix:\n%s", np.array2string(matrix, separator=', '))
 
     # 遍历矩阵，提取所有的 3x3 子矩阵
@@ -160,6 +160,14 @@ async def run_test(dut):
     
     tb.log.info("RX packet: %s", repr(rx_pkt))
 
+    def saturate_to_int8(value):
+        if value > 127:
+            return 127
+        elif value < -128:
+            return -128
+        else:
+            return value
+
     assert rx_pkt.dst == test_pkt.src
     assert rx_pkt.src == test_pkt.dst
     assert rx_pkt[IP].dst == test_pkt[IP].src
@@ -167,17 +175,21 @@ async def run_test(dut):
     assert rx_pkt[UDP].dport == test_pkt[UDP].sport
     assert rx_pkt[UDP].sport == test_pkt[UDP].dport
     # assert rx_pkt[UDP].payload == test_pkt[UDP].payload
-    corr_result = correlate2d(matrix, conv_kernel_r, mode='valid')
-    corr_bytes = corr_result.astype(np.uint8).tobytes()
-    tb.log.info(f"answer: {corr_bytes}")
+    corr_result = correlate2d(matrix.astype(np.int32), conv_kernel_r.astype(np.int32), mode='valid')
+    tb.log.info(f"{corr_result}")
+    saturated_result = np.vectorize(saturate_to_int8)(corr_result)
+    tb.log.info(f"{saturated_result}")
+    saturated_result_int8 = saturated_result.astype(np.int8)
+    ans = saturated_result_int8.tobytes()
+    tb.log.info(f"answer: {ans}")
     tb.log.info(f"output: {rx_pkt[UDP].payload.load}")
-    # assert corr_bytes == rx_pkt[UDP].payload.load
+    assert ans == rx_pkt[UDP].payload.load
     
     tb.log.info("TTTTEEEESSSSTTTT")
     await tb.rgmii_phy0.rx.send(test_frame)
     rx_frame = await tb.rgmii_phy0.tx.recv()
     rx_pkt = Ether(bytes(rx_frame.get_payload()))
-    tb.log.info(f"answer: {corr_bytes}")
+    tb.log.info(f"answer: {ans}")
     tb.log.info(f"output: {rx_pkt[UDP].payload.load}")
     # assert corr_bytes == rx_pkt[UDP].payload.load
     await RisingEdge(dut.clk)
