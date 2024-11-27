@@ -1,0 +1,28 @@
+digraph FSM {
+     // 圆形节点
+    IDLE;
+    LOAD_PARAM;
+    LOAD_DATA;
+    LOAD_DATA_COMPUTE;
+    LAST;
+    DUMMY;
+    DUMMY1;
+
+    // 状态转换
+    IDLE -> LOAD_PARAM [label="s_axis_tvalid"];
+    IDLE -> IDLE [label="!s_axis_tvalid"];
+
+    LOAD_PARAM -> LOAD_DATA [label="byte_counter == 'd8"];
+    LOAD_PARAM -> LOAD_PARAM [label="byte_counter != 'd8"];
+
+    LOAD_DATA -> LAST [label="s_axis_tlast"];
+    LOAD_DATA -> LOAD_DATA_COMPUTE [label="byte_counter == 'd8 && !s_axis_tlast"];
+    LOAD_DATA -> LOAD_DATA [label="byte_counter != 'd8 && !s_axis_tlast"];
+
+    LOAD_DATA_COMPUTE -> LAST [label="s_axis_tlast"];
+    LOAD_DATA_COMPUTE -> LOAD_DATA_COMPUTE [label="!s_axis_tlast"];
+
+    LAST -> DUMMY;
+    DUMMY -> DUMMY1;
+    DUMMY1 -> IDLE;
+}
